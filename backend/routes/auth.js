@@ -9,32 +9,38 @@ router.post('/register', (req, res) => {
 
   console.log("📥 REGISTER REQUEST:", req.body);
 
-  // 🔍 CHECK IF EMAIL ALREADY EXISTS
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
   const checkSql = "SELECT * FROM users WHERE email=?";
+  
   db.query(checkSql, [email], (err, result) => {
     if (err) {
-      console.log("❌ CHECK ERROR:", err);
-      return res.status(500).json({ message: "Server Error" });
+      console.error("❌ CHECK ERROR:", err.message);
+      return res.status(500).json({ error: err.message });
     }
 
     if (result.length > 0) {
-      return res.status(400).json({ message: "Email already exists. Please login instead." });
+      return res.status(400).json({ message: "Email already exists" });
     }
 
-    // ✅ INSERT USER
-    const insertSql = "INSERT INTO users (name,email,password,role,school) VALUES (?,?,?,?,?)";
-    db.query(insertSql, [name, email, password, role, school], (err, result) => {
+    const insertSql = `
+      INSERT INTO users (name, email, password, role, school)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+
+    db.query(insertSql, [name, email, password, role || null, school || null], (err, result) => {
       if (err) {
-        console.log("❌ INSERT ERROR:", err);
-        return res.status(500).json({ message: "Registration Error" });
+        console.error("❌ INSERT ERROR:", err.message);
+        return res.status(500).json({ error: err.message });
       }
 
-      console.log("✅ USER INSERTED ID:", result.insertId);
+      console.log("✅ USER CREATED:", result.insertId);
       res.json({ message: "Registered Successfully" });
     });
   });
 });
-
 
 // ================= LOGIN =================
 router.post('/login', (req, res) => {
